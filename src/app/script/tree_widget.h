@@ -24,7 +24,7 @@ struct TreeNode {
   std::string id;
   std::string text;
   std::string icon;  // ID of a theme part
-  std::string badge; // Short text painted at the right of the row
+  std::string badge; // Short text painted right after the label
   bool expanded = false;
   // False when the script didn't say, so a replaced node keeps the
   // expanded state of the node with the same ID.
@@ -36,20 +36,20 @@ struct TreeNode {
 using TreeNodes = std::vector<std::unique_ptr<TreeNode>>;
 using TreeRows = std::vector<std::pair<TreeNode*, int>>; // Visible nodes and their depth
 
-// Where a row paints its badge and its label. The badge sits at the
-// right of the part of the row that the view shows, the label ends
-// before it.
+// Where a row paints its label and its badge. The label shows whole
+// and the badge follows it.
 struct TreeRowLayout {
   gfx::Rect badge; // Empty without a badge
   gfx::Rect label;
 };
 
-// row and visible are in the coordinates of the tree's content,
-// labelX is where the label starts, badgeTextWidth is 0 without a
-// badge, pad is the space around the badge and its text.
+// row is in the coordinates of the tree's content (only its y and
+// height count), labelX is where the label starts, badgeTextWidth is 0
+// without a badge, pad is the space around the badge's text, and the
+// gap before the badge is twice pad.
 TreeRowLayout tree_row_layout(const gfx::Rect& row,
-                              const gfx::Rect& visible,
                               int labelX,
+                              int labelTextWidth,
                               int badgeTextWidth,
                               int pad);
 
@@ -122,7 +122,6 @@ public:
 
 protected:
   void onSizeHint(ui::SizeHintEvent& ev) override;
-  void onSetViewScroll(const gfx::Point& pt) override;
 
 private:
   class Content;

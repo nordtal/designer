@@ -1,6 +1,7 @@
--- A tree paints each badge at the right edge of what it shows, so a
--- tree with a width shows the badges of its longer nodes unscrolled,
--- and a tree without one paints them at the end of its nodes
+-- A tree paints each badge right after its node's text, so the text
+-- shows whole: in a tree with a width a short node shows its badge
+-- while a long node's badge lies past what the tree shows, and a short
+-- node has its badge near its start however wide the tree is
 
 ui_test(function()
   local scale = app.uiScale
@@ -32,11 +33,11 @@ ui_test(function()
     return x1 and Rectangle(x1, y1, x2 - x1 + 1, y2 - y1 + 1)
   end
 
-  local function tree(width)
-    local dlg = Dialog("Tree badge")
-    dlg:tree{ id="files", width=width, nodes={
-      { id="long", text=string.rep("a node with a long name ", width and 20 or 3), badge="7" },
-    } }
+  local function tree(title, width, texts)
+    local nodes = {}
+    for i, text in ipairs(texts) do nodes[i] = { id="node" .. i, text=text, badge="7" } end
+    local dlg = Dialog(title)
+    dlg:tree{ id="files", width=width, nodes=nodes }
     dlg:show{ wait=false }
     -- In a corner, away from the dialogs the app shows at its start
     local b = dlg.bounds
@@ -44,34 +45,37 @@ ui_test(function()
     return dlg
   end
 
-  local fixed, free
+  local fixed, short
   local ticks = 0
   return function()
     ticks = ticks + 1
     -- The dialogs are painted before the screenshot
     if ticks == 1 then
-      fixed = tree(100)
+      fixed = tree("Tree badge", 100, { "a", string.rep("a node with a long name ", 20) })
       return false
     end
     if ticks == 3 then
+      -- The short node's badge shows right after it; the long text
+      -- fills the 100 px the tree shows, and its badge lies past it, so
+      -- the only badge pixels are those of the first row
       local b = fixed.bounds
       local rc = badge(fixed)
       assert(rc, "no badge in a tree with a width")
-      -- Right-aligned in the 100 px the tree shows, past its label
       assert(rc.x + rc.width <= b.x + b.width, "the badge ends at " .. rc.x + rc.width)
-      assert(rc.x > b.x + 50 * scale, "the badge starts at " .. rc.x - b.x .. " px")
+      assert(rc.x < b.x + 50 * scale, "the badge starts at " .. rc.x - b.x .. " px")
+      assert(rc.height < 20 * scale, "badge pixels in " .. rc.height .. " px of rows")
       fixed:close()
-      free = tree(nil)
+      short = tree("A tree badge right after a short node", nil, { "a" })
       return false
     end
     if ticks == 5 then
-      local b = free.bounds
-      local rc = badge(free)
-      assert(rc, "no badge in a tree without a width")
-      -- The dialog is as wide as the node, and the badge ends it
-      assert(b.width > 200 * scale, "the dialog is " .. b.width .. " px wide")
-      assert(rc.x > b.x + b.width - 50 * scale, "the badge starts at " .. rc.x - b.x .. " px")
-      free:close()
+      local b = short.bounds
+      local rc = badge(short)
+      assert(rc, "no badge after a short node")
+      -- The title makes the dialog wide, and the badge stays at the node
+      assert(b.width > 150 * scale, "the dialog is " .. b.width .. " px wide")
+      assert(rc.x < b.x + 50 * scale, "the badge starts at " .. rc.x - b.x .. " px")
+      short:close()
       return true
     end
     return false
