@@ -1,7 +1,7 @@
 -- A tree paints each badge right after its node's text, so the text
--- shows whole: a tree with a width shows the start of a long node and
--- scrolls to its badge, and a short node has its badge near its start
--- however wide the tree is
+-- shows whole: in a tree with a width a short node shows its badge
+-- while a long node's badge lies past what the tree shows, and a short
+-- node has its badge near its start however wide the tree is
 
 ui_test(function()
   local scale = app.uiScale
@@ -33,9 +33,11 @@ ui_test(function()
     return x1 and Rectangle(x1, y1, x2 - x1 + 1, y2 - y1 + 1)
   end
 
-  local function tree(title, width, text)
+  local function tree(title, width, texts)
+    local nodes = {}
+    for i, text in ipairs(texts) do nodes[i] = { id="node" .. i, text=text, badge="7" } end
     local dlg = Dialog(title)
-    dlg:tree{ id="files", width=width, nodes={ { id="node", text=text, badge="7" } } }
+    dlg:tree{ id="files", width=width, nodes=nodes }
     dlg:show{ wait=false }
     -- In a corner, away from the dialogs the app shows at its start
     local b = dlg.bounds
@@ -49,15 +51,21 @@ ui_test(function()
     ticks = ticks + 1
     -- The dialogs are painted before the screenshot
     if ticks == 1 then
-      fixed = tree("Tree badge", 100, string.rep("a node with a long name ", 20))
+      fixed = tree("Tree badge", 100, { "a", string.rep("a node with a long name ", 20) })
       return false
     end
     if ticks == 3 then
-      -- The long text fills the 100 px the tree shows, and its badge
-      -- waits past it
-      assert(not badge(fixed), "a badge covers the text of a tree with a width")
+      -- The short node's badge shows right after it; the long text
+      -- fills the 100 px the tree shows, and its badge lies past it, so
+      -- the only badge pixels are those of the first row
+      local b = fixed.bounds
+      local rc = badge(fixed)
+      assert(rc, "no badge in a tree with a width")
+      assert(rc.x + rc.width <= b.x + b.width, "the badge ends at " .. rc.x + rc.width)
+      assert(rc.x < b.x + 50 * scale, "the badge starts at " .. rc.x - b.x .. " px")
+      assert(rc.height < 20 * scale, "badge pixels in " .. rc.height .. " px of rows")
       fixed:close()
-      short = tree("A tree badge right after a short node", nil, "a")
+      short = tree("A tree badge right after a short node", nil, { "a" })
       return false
     end
     if ticks == 5 then
