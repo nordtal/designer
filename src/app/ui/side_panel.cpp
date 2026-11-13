@@ -25,6 +25,7 @@ namespace app {
 
 static constexpr auto kWidthSection = "layout:side_panel";
 static constexpr auto kSplitSection = "layout:side_panel_split";
+static constexpr auto kBesideSection = "layout:side_panel_beside";
 
 // The values of the panels that keep theirs for the session only, by
 // section and key
@@ -46,27 +47,30 @@ void SidePanelKept::setWidth(int width)
     g_session[{ kWidthSection, m_key }] = width;
 }
 
-double SidePanelKept::split() const
+double SidePanelKept::split(const bool beside) const
 {
+  const char* section = (beside ? kBesideSection : kSplitSection);
   if (m_inConfig)
-    return get_config_double(kSplitSection, m_key.c_str(), -1);
-  auto it = g_session.find({ kSplitSection, m_key });
+    return get_config_double(section, m_key.c_str(), -1);
+  auto it = g_session.find({ section, m_key });
   return (it != g_session.end() ? it->second : -1);
 }
 
-void SidePanelKept::setSplit(double position)
+void SidePanelKept::setSplit(double position, const bool beside)
 {
   // A drag goes on past the panel's edges
   position = std::clamp(position, 0.0, 100.0);
+  const char* section = (beside ? kBesideSection : kSplitSection);
   if (m_inConfig)
-    set_config_double(kSplitSection, m_key.c_str(), position);
+    set_config_double(section, m_key.c_str(), position);
   else
-    g_session[{ kSplitSection, m_key }] = position;
+    g_session[{ section, m_key }] = position;
 }
 
-SidePanelSplitter::SidePanelSplitter(SidePanelKept* kept)
-  : ui::Splitter(ByPercentage, ui::VERTICAL)
+SidePanelSplitter::SidePanelSplitter(SidePanelKept* kept, const bool beside)
+  : ui::Splitter(ByPercentage, beside ? ui::HORIZONTAL : ui::VERTICAL)
   , m_kept(kept)
+  , m_beside(beside)
 {
   setExpansive(true);
 }
@@ -78,12 +82,17 @@ void SidePanelSplitter::onPaint(ui::PaintEvent& ev)
   auto* g = ev.graphics();
   auto* theme = skin::SkinTheme::get(this);
   g->fillRect(theme->colors.windowFace(), clientBounds());
-  const ui::Widget* above = panel1();
-  const ui::Widget* below = panel2();
-  if (above && below) {
-    const int y = above->bounds().y2() - bounds().y;
+  const ui::Widget* first = panel1();
+  const ui::Widget* second = panel2();
+  if (first && second && m_beside) {
+    const int x = first->bounds().x2() - bounds().x;
     g->fillRect(theme->colors.workspace(),
-                gfx::Rect(0, y, bounds().w, below->bounds().y - above->bounds().y2()));
+                gfx::Rect(x, 0, second->bounds().x - first->bounds().x2(), bounds().h));
+  }
+  else if (first && second) {
+    const int y = first->bounds().y2() - bounds().y;
+    g->fillRect(theme->colors.workspace(),
+                gfx::Rect(0, y, bounds().w, second->bounds().y - first->bounds().y2()));
   }
 }
 
@@ -91,7 +100,7 @@ void SidePanelSplitter::onPositionChange()
 {
   ui::Splitter::onPositionChange();
   if (hasCapture())
-    m_kept->setSplit(getPosition());
+    m_kept->setSplit(getPosition(), m_beside);
 }
 
 SidePanel::SidePanel()
@@ -138,10 +147,10 @@ void SidePanel::setWidth(int width)
   m_kept.setWidth(width);
 }
 
-void SidePanel::split(ui::Widget* above, ui::Widget* below)
+void SidePanel::split(ui::Widget* above, ui::Widget* below, const bool beside)
 {
-  auto splitter = new SidePanelSplitter(&m_kept);
-  const double position = m_kept.split();
+  auto splitter = new SidePanelSplitter(&m_kept, beside);
+  const double position = m_kept.split(beside);
   splitter->setPosition(position >= 0 ? position : 50);
   replaceChild(above, splitter);
   splitter->addChild(above);
