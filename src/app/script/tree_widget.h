@@ -43,9 +43,10 @@ struct TreeRowLayout {
   gfx::Rect label;
 };
 
-// row is in the coordinates of the tree's content, labelX is where
-// the label starts, badgeTextWidth is 0 without a badge, pad is the
-// space around the badge's text and twice the gap before the badge.
+// row is in the coordinates of the tree's content (only its y and
+// height count), labelX is where the label starts, badgeTextWidth is 0
+// without a badge, pad is the space around the badge's text, and the
+// gap before the badge is twice pad.
 TreeRowLayout tree_row_layout(const gfx::Rect& row,
                               int labelX,
                               int labelTextWidth,
