@@ -47,7 +47,7 @@ private:
 // gives it doesn't.
 class SidePanelSplitter : public ui::Splitter {
 public:
-  SidePanelSplitter(SidePanelKept* kept, bool beside);
+  SidePanelSplitter(SidePanelKept* kept, bool beside = false);
 
 protected:
   void onPaint(ui::PaintEvent& ev) override;
