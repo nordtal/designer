@@ -48,6 +48,12 @@
 //    disabled. Only a trusted script then creates a sprite with
 //    Sprite(), opens one with app.open() or Sprite{ fromFile } and
 //    opens a Dialog{ tab=true }. Any script still reads an image.
-#define FORK_API_VERSION 8
+// 9: Dialog:splitter{ beside=true } puts the widgets after it right of
+//    the splitter, which shares the panel's width; the panel keeps
+//    its place apart from that of a splitter between widgets one above
+//    the other. A tree scrolls with the mouse wheel, and the event of
+//    a canvas's onwheel has precise, true when deltaX and deltaY are
+//    in points, as a trackpad gives them, not in steps of the wheel.
+#define FORK_API_VERSION 9
 
 #endif

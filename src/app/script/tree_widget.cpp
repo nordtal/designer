@@ -329,6 +329,11 @@ protected:
         return true;
       }
 
+      case kMouseWheelMessage:
+        // Three rows a step of the wheel, or the points of a trackpad
+        View::scrollByMessage(this, msg, 3 * rowHeight());
+        return true;
+
       case kKeyDownMessage: {
         if (!hasFocus())
           break;

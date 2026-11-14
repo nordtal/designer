@@ -31,11 +31,11 @@ public:
   int width() const;
   void setWidth(int width);
 
-  // The splitter's place in percent of the panel's height, or -1 if
-  // there's none
-  double split() const;
+  // The splitter's place in percent of the panel's height, or of its
+  // width for parts beside each other, or -1 if there's none
+  double split(bool beside = false) const;
   // Keeps the place within 0..100
-  void setSplit(double position);
+  void setSplit(double position, bool beside = false);
 
 private:
   std::string m_key;
@@ -47,7 +47,7 @@ private:
 // gives it doesn't.
 class SidePanelSplitter : public ui::Splitter {
 public:
-  explicit SidePanelSplitter(SidePanelKept* kept);
+  SidePanelSplitter(SidePanelKept* kept, bool beside = false);
 
 protected:
   void onPaint(ui::PaintEvent& ev) override;
@@ -55,6 +55,7 @@ protected:
 
 private:
   SidePanelKept* m_kept;
+  bool m_beside;
 };
 
 // A column of widgets that a workspace view gives the main window
@@ -81,9 +82,10 @@ public:
 
   // Moves the widget above, which the panel holds, and the widget
   // below into a splitter that the user drags to share the panel's
-  // height between them. It starts at half, and the panel keeps where
-  // the user dragged it under its width key.
-  void split(ui::Widget* above, ui::Widget* below);
+  // height between them, or with beside its width, the first widget
+  // on the left. It starts at half, and the panel keeps where the user
+  // dragged it under its width key, apart for each of the two ways.
+  void split(ui::Widget* above, ui::Widget* below, bool beside = false);
 
   // Dockable implementation
   int dockableAt() const override { return ui::LEFT | ui::RIGHT | ui::EXPANSIVE; }

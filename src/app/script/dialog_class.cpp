@@ -1360,6 +1360,9 @@ static void fill_mousemessage_values(lua_State* L, const ui::MouseMessage* msg)
 
     lua_pushnumber(L, msg->wheelDelta().y);
     lua_setfield(L, -2, "deltaY");
+
+    lua_pushboolean(L, msg->preciseWheel());
+    lua_setfield(L, -2, "precise");
   }
 }
 
@@ -1780,10 +1783,18 @@ int Dialog_splitter(lua_State* L)
   if (dlg->panelGrid->parent() != panel)
     return luaL_error(L, "a side panel has one splitter at most");
 
-  // The widgets from here on go below the splitter
+  // With beside=true the widgets from here on go right of the
+  // splitter, otherwise below it
+  bool beside = false;
+  if (lua_istable(L, 2)) {
+    lua_getfield(L, 2, "beside");
+    beside = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+  }
+
   auto grid = new ui::Grid(2, false);
   grid->setExpansive(true);
-  panel->split(dlg->panelGrid, grid);
+  panel->split(dlg->panelGrid, grid, beside);
   dlg->panelGrid = grid;
   dlg->currentGrid = grid;
   dlg->hbox = nullptr;
