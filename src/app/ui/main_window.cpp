@@ -66,6 +66,9 @@ static constexpr const char* kLegacyLayoutMainWindowSection = "layout:main_windo
 static constexpr const char* kLegacyLayoutTimelineSplitter = "timeline_splitter";
 static constexpr const char* kLegacyLayoutColorBarSplitter = "color_bar_splitter";
 
+// The most share of the window's width that a side panel takes
+static constexpr double kSidePanelShare = 0.6;
+
 class ScreenScalePanic : public INotificationDelegate {
 public:
   std::string notificationText() override { return "Reset Scale!"; }
@@ -183,6 +186,10 @@ void MainWindow::initialize()
   // splitter of the layout's colour between them
   m_panelDock = m_dock->center();
   m_panelDock->dock(ui::CENTER, m_customizableDockPlaceholder.get());
+  // In a narrow window the panel gives up width, so the colour bar
+  // and the editor stay in the window
+  m_panelDock->setMaxShare(ui::LEFT, kSidePanelShare);
+  m_panelDock->setMaxShare(ui::RIGHT, kSidePanelShare);
 
   // After the user resizes the dock we save the updated layout
   m_saveDockLayoutConn = m_customizableDock->UserResizedDock.connect(&MainWindow::saveActiveLayout,
@@ -192,8 +199,12 @@ void MainWindow::initialize()
   // keeps the width the user gives it
   m_customizedDockConn = m_customizableDock->UserResizedDock.connect([this] { updateSidePanel(); });
   m_sidePanelResizeConn = m_panelDock->UserResizedDock.connect([this] {
-    if (m_sidePanel)
-      m_sidePanel->setWidth(m_sidePanel->bounds().w / guiscale());
+    // The width the user dragged to, not the narrower one that a
+    // narrow window shows, which a click alone would keep
+    if (m_sidePanel) {
+      const int side = m_panelDock->whichSideChildIsDocked(m_sidePanel);
+      m_sidePanel->setWidth(m_panelDock->getUserDefinedSizeAtSide(side).w / guiscale());
+    }
   });
 
   // Reconfigure workspace when the timeline position is changed.
