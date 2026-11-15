@@ -31,6 +31,9 @@
 #include "ui/system.h"
 #include "ui/widget.h"
 
+#include <algorithm>
+#include <limits>
+
 namespace app {
 
 using namespace app::skin;
@@ -152,6 +155,7 @@ Dock::Dock()
     m_sides[i] = nullptr;
     m_aligns[i] = 0;
     m_sizes[i] = gfx::Size(0, 0);
+    m_maxShares[i] = 0;
   }
 
   initTheme();
@@ -278,6 +282,18 @@ void Dock::forgetHit(Widget* widget)
     m_hit = Hit();
     m_dragging = false;
   }
+}
+
+void Dock::setMaxShare(const int side, const double share)
+{
+  m_maxShares[side_index(side)] = share;
+}
+
+int Dock::maxWidth(const int i) const
+{
+  if ((i != kLeftIndex && i != kRightIndex) || m_maxShares[i] <= 0)
+    return std::numeric_limits<int>::max();
+  return int(childrenBounds().w * m_maxShares[i]);
 }
 
 int Dock::whichSideChildIsDocked(const ui::Widget* widget) const
@@ -484,8 +500,11 @@ bool Dock::onProcessMessage(ui::Message* msg)
       if (m_hit.sideIndex >= 0 || m_hit.dockable) {
         m_startPos = pos;
 
-        if (m_hit.sideIndex >= 0)
+        if (m_hit.sideIndex >= 0) {
+          // A drag starts from the width the side shows
           m_startSize = m_sizes[m_hit.sideIndex];
+          m_startSize.w = std::min(m_startSize.w, maxWidth(m_hit.sideIndex));
+        }
 
         captureMouse();
 
@@ -525,10 +544,12 @@ bool Dock::onProcessMessage(ui::Message* msg)
               sz.h = std::max(m_startSize.h - pos.y + m_startPos.y, minSize.h);
               break;
             case kLeftIndex:
-              sz.w = std::max(m_startSize.w + pos.x - m_startPos.x, minSize.w);
+              sz.w = std::max(std::min(m_startSize.w + pos.x - m_startPos.x, maxWidth(kLeftIndex)),
+                              minSize.w);
               break;
             case kRightIndex:
-              sz.w = std::max(m_startSize.w - pos.x + m_startPos.x, minSize.w);
+              sz.w = std::max(std::min(m_startSize.w - pos.x + m_startPos.x, maxWidth(kRightIndex)),
+                              minSize.w);
               break;
           }
 
@@ -773,7 +794,8 @@ void Dock::forEachSide(gfx::Rect bounds,
     }
 
     const int spacing = (m_aligns[i] & EXPANSIVE ? childSpacing() : 0);
-    const gfx::Size sz = (m_aligns[i] & EXPANSIVE ? m_sizes[i] : widget->sizeHint(bounds.size()));
+    gfx::Size sz = (m_aligns[i] & EXPANSIVE ? m_sizes[i] : widget->sizeHint(bounds.size()));
+    sz.w = std::min(sz.w, maxWidth(i));
 
     gfx::Rect rc, separator;
     switch (i) {

@@ -61,6 +61,10 @@ public:
 
   Dock* subdock(int side);
 
+  // The left or right side takes at most share of the dock's width,
+  // however wide it wants to be, so the centre keeps the rest
+  void setMaxShare(int side, double share);
+
   Dock* top() { return subdock(ui::TOP); }
   Dock* bottom() { return subdock(ui::BOTTOM); }
   Dock* left() { return subdock(ui::LEFT); }
@@ -99,6 +103,9 @@ private:
   // the widget, which is about to be undocked.
   void forgetHit(ui::Widget* widget);
 
+  // The most width the side i may take, or the largest int
+  int maxWidth(int i) const;
+
   bool hasVisibleSide(const int i) const { return (m_sides[i] && m_sides[i]->isVisible()); }
   void redockWidget(app::Dock* widgetDock, ui::Widget* dockableWidget, const int side);
 
@@ -114,6 +121,7 @@ private:
   std::array<Widget*, kSides> m_sides;
   std::array<int, kSides> m_aligns;
   std::array<gfx::Size, kSides> m_sizes;
+  std::array<double, kSides> m_maxShares;
   bool m_autoDelete = false;
 
   // Use to drag-and-drop stuff (splitters and dockable widgets)
